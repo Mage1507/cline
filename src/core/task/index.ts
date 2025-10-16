@@ -1089,6 +1089,32 @@ export class Task {
 
 	async abortTask() {
 		try {
+			// Run TaskCancel hook
+			const hooksEnabled = featureFlagsService.getHooksEnabled() && this.stateManager.getGlobalSettingsKey("hooksEnabled")
+			if (hooksEnabled) {
+				try {
+					const { HookFactory } = await import("../hooks/hook-factory")
+					const hookFactory = new HookFactory()
+					const taskCancelHook = await hookFactory.create("TaskCancel")
+
+					await taskCancelHook.run({
+						taskId: this.taskId,
+						taskCancel: {
+							taskMetadata: {
+								taskId: this.taskId,
+								ulid: this.ulid,
+								completionStatus: this.taskState.abandoned ? "abandoned" : "cancelled",
+							},
+						},
+					})
+
+					// TaskCancel hook is fire-and-forget, no need to check shouldContinue
+				} catch (hookError) {
+					console.error("TaskCancel hook failed:", hookError)
+					// Non-fatal: continue with abort
+				}
+			}
+
 			// Check for incomplete progress before aborting
 			if (this.FocusChainManager) {
 				this.FocusChainManager.checkIncompleteProgressOnCompletion()

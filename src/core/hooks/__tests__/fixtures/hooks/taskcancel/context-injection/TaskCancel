@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+const input = JSON.parse(require('fs').readFileSync(0, 'utf-8'));
+
+const status = input.taskCancel.taskMetadata.completionStatus;
+
+console.log(JSON.stringify({
+  shouldContinue: true,
+  contextModification: `TASK_CANCEL: Task ${status} - cleanup performed`,
+  errorMessage: ""
+}));
